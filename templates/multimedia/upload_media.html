@@ -1,0 +1,100 @@
+{% extends "base_generic.html" %}
+{% load static %}
+
+{% block content %}
+<h2>Upload Media Files</h2>
+<form id="uploadForm" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Upload</button>
+</form>
+
+<div id="taskInfo" style="display:none;">
+    <p>Status: <span id="taskStatus">Waiting...</span></p>
+    <button onclick="cancelTask()" id="cancelButton">Cancel Task</button>
+</div>
+
+<!-- Video display area -->
+<div id="videoDisplay" style="display:none;">
+    <video controls id="videoPlayer">
+        <source id="videoSource" src="" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <a id="downloadLink" href="" download="processed_video.mp4">Download Video</a>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Upload response:', data);
+            document.getElementById('taskInfo').style.display = 'block';
+            document.getElementById('taskStatus').textContent = 'Processing...';
+            document.getElementById('cancelButton').setAttribute('data-task-id', data.task_id);
+            checkStatus(data.task_id);
+        })
+        .catch(error => {
+            console.error('Upload Error:', error);
+            document.getElementById('taskStatus').textContent = 'Upload failed';
+        });
+    });
+
+    function cancelTask() {
+        const taskId = document.getElementById('cancelButton').getAttribute('data-task-id');
+        fetch(`/cancel_task/${taskId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Cancel response:', data);
+            document.getElementById('taskStatus').textContent = data.status;
+            document.getElementById('cancelButton').style.display = 'none';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function checkStatus(taskId) {
+        var intervalId = setInterval(() => {
+            fetch(`{% url 'task_status' 'dummy_id' %}`.replace('dummy_id', taskId))
+            .then(response => response.json())
+            .then(data => {
+                console.log('Status check:', data);
+                document.getElementById('taskStatus').textContent = data.status;
+                if (data.status === 'completed') {
+                    clearInterval(intervalId);
+                    document.getElementById('videoSource').src = data.video_url;
+                    document.getElementById('videoPlayer').load(); // Reload the video element to update the source
+                    document.getElementById('downloadLink').href = data.video_url;
+                    document.getElementById('videoDisplay').style.display = 'block';
+                } else if (data.status === 'canceled') {
+                    clearInterval(intervalId);
+                    document.getElementById('taskInfo').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error checking status:', error);
+                clearInterval(intervalId);
+            });
+        }, 5000); // Check every 5 seconds
+    }
+});
+</script>
+
+{% endblock %}

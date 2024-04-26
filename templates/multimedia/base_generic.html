@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My Website{% endblock %}</title>
+    <!-- 这里可以链接外部CSS文件或直接在这里写样式 -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>My Website</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/about/">About Us</a></li>
+                <li><a href="/contact/">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}
+        <!-- 主内容区将在这里被子模板重写 -->
+        {% endblock content %}
+    </main>
+
+    <footer>
+        <p>© 2024 My Website. All rights reserved.</p>
+    </footer>
+
+    <!-- 可以在这里添加JavaScript文件 -->
+    <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

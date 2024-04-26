@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Question & Answer</title>
+</head>
+<body>
+    <h1>Ask a Question111</h1>
+    <input type="text" id="question" placeholder="Type your question here...">
+    <button onclick="askQuestion()">Submit</button>
+    <p>Answer: <span id="answer"></span></p>
+    <p>Status: <span id="status">Disconnected</span></p>
+
+    <script>
+        var socket = null;
+
+        function connectWebSocket() {
+            // 尝试连接 WebSocket
+            updateStatus("Connecting...");
+            socket = new WebSocket('ws://' + window.location.host + '/ws/questions/');
+
+            socket.onopen = function() {
+                console.log('WebSocket connection established.');
+                updateStatus("Connected");
+            };
+
+            socket.onmessage = function(event) {
+                var data = JSON.parse(event.data);
+                document.getElementById('answer').innerText = data.answer;
+            };
+
+            socket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                updateStatus("Error: Connection failed");
+            };
+
+            socket.onclose = function(event) {
+                console.log('WebSocket connection closed:', event);
+                updateStatus("Disconnected, retrying...");
+                setTimeout(connectWebSocket, 5000); // 5秒后尝试重新连接
+            };
+        }
+
+        function askQuestion() {
+            const question = document.getElementById('question').value;
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({'question': question}));
+                document.getElementById('answer').innerText = "Waiting for answer...";
+            } else {
+                console.error('WebSocket is not connected.');
+                updateStatus("Disconnected, cannot send question.");
+            }
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').innerText = message;
+        }
+
+        // 页面加载完毕时连接 WebSocket
+        window.onload = connectWebSocket;
+    </script>
+</body>
+</html>
